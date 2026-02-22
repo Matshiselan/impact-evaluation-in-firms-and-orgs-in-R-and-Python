@@ -1,0 +1,69 @@
+## Purpose
+The purpose of this code is to analyse the impact of coupon treatment on the amount spent by customers in a retail setting on a given day. We will use a dataset that contains information about customer purchases, including whether they received a coupon and how much they spent.
+
+## Load necessary libraries
+```{r}
+#install.packages("causalweight")
+library(lmtest)
+library(sandwich)
+library(causalweight)
+```
+
+## Regression analysis
+```{r}
+data(coupon)
+results <- lm(dailyspending ~., data=coupon)
+coeftest(results, vcov = vcovHC)
+``` 
+
+On average customers who received a coupon spent $73.64 more than those who did not receive a coupon, holding all other variables constant. This suggests that the coupon treatment has a positive effect on customer spending. However, it is important to consider potential confounding variables and the overall context of the data before drawing definitive conclusions about causality.
+
+## Matching analysis
+```{r}
+#install.packages("Matching")
+library(Matching)
+y <- coupon[,1]; d <- coupon[,2]; x <- as.matrix(coupon[,3:9])
+results <- Match(Y=y, Tr=d, X=x, estimand="ATE")
+summary(results)
+```
+
+Using matching analysis, we find that the average treatment effect (ATE) of receiving a coupon on daily spending is approximately $60, which is less than the regression analysis. This suggests that, on average, customers who received a coupon spent $60 more than those who did not receive a coupon, after controlling for other covariates.
+
+## Matching with Inverse Probability of Treatment Weighting (IPTW)
+
+```{r}
+results_iptw <- treatweight(y=y, d=d, x=x)
+results_iptw$effect; results_iptw$pval
+```
+
+Using Inverse Probability of Treatment Weighting (IPTW), we find that the estimated effect of receiving a coupon on daily spending is approximately $80, with a p-value indicating statistical significance. This suggests that, after accounting for the probability of receiving a coupon based on covariates, customers who received a coupon spent $80 more than those who did not receive a coupon.
+
+## Double Robust Estimation
+```{r}
+#install.packages("drgee")
+library(drgee)
+results_dr <- drgee(
+    oformula = formula(y~x),
+    eformula = formula(d~x),
+    elink = "logit"
+)
+summary(results_dr)
+```
+
+The ATE suggests that receiving a coupon increases daily spending by approximately $74.84 with a p-value indicating statistical significance. Although the ATE is different from the previous methods, it still indicates a positive effect of receiving a coupon on daily spending. 
+
+## Graphical representation of the ATE results
+```{r}
+#install.packages("ggplot2")
+library(ggplot2)
+ate_results <- data.frame(
+    Method = c("Regression", "Matching", "IPTW", "Double Robust"),
+    ATE = c(73.64, 60, 80, 74.84)
+)
+ggplot(ate_results, aes(x=Method, y=ATE, fill=Method)) +
+    geom_bar(stat="identity") +
+    theme_minimal() +
+    labs(title="Average Treatment Effect (ATE) of Coupon on Daily Spending",
+         x="Method", y="ATE ($)") +
+    theme(legend.position="none")
+```

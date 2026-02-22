@@ -1,0 +1,65 @@
+---
+title: "Causal Inference: Evaluating the Impact of an Environmental Awareness Leaflet"
+format: html
+---
+
+# Introduction
+
+## First Experiment
+
+The intervantion was conducted by the NGO Ecosystem Europe and involved the  distribution of leaflets containing information about the environmental and social implications of coffee production among high school and university students in Bulgaria.
+
+Some students received leaflets while some did not. In a subsequent survey, all students were asked to participate, and their awareness of environmental issues related to coffee production was measured.
+
+The goal is to evaluate the impact of the leaflet on one of the awareness outcomes specifically awareness of waste production due to coffee production using R.
+
+```{r}
+
+# install.packages(c(
+#   "causalweight",
+#   "lmtest",
+#   "sandwich"
+# ))
+
+library(causalweight)
+library(lmtest)
+library(sandwich)
+library(tidyverse)
+
+
+data("coffeeleaflet")
+head(coffeeleaflet)
+
+glimpse(coffeeleaflet)
+
+
+results = lm(awarewaste~treatment, data = coffeeleaflet)
+coeftest(results, vcov = vcovHC)
+
+
+```
+
+The intercept is 2.01, and that for treatment is 0.28. This means that the average awareness score for waste production due to coffee production is 2.01 for the control group (those who did not receive the leaflet). For those who received the leaflet, the average awareness score is 2.01 + 0.28 = 2.29. This indicates that receiving the leaflet increased the average awareness score by 0.28 points.
+
+## Second Experiment
+
+```{r}  
+# |--data: marketing
+# | fig width: 7
+# | fig height: 5
+
+# install.packages(c("datarium", "np"))
+library(datarium)
+library(np) # for non-parametric estimation
+
+
+data("marketing", package = "datarium")
+head(marketing)
+
+results2 = npregbw(sales~newspaper, data = marketing)
+plot(results2, plot.errors.method="asymptotic") #plot average sales
+plot(results2, gradients=T, plot.errors.method="asymptotic") #plot effects
+
+```
+
+The data contains 200 observations with information on sales and advertising  budgets, including a variable called newspaper that measures the budget  advertisement in newspapers, measured in thousands of dollars. The newspaper variable is used as a treatment variable to evaluate the impact of newspaper, which was presumanbly randomly assigned, to experimentally assess the impact on  the sales. of a product, which is the outcome measured in thousands of product units sold.
